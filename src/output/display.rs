@@ -43,6 +43,7 @@ pub fn display_hex(binary: &[i32], size: [i32; 2], digits: i32) -> Result<(), st
 		}
 		out.write(b"\n")?;
 	}
+	out.write(b"\n")?;
 
 	return Ok(());
 }

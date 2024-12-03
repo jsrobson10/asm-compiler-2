@@ -18,8 +18,13 @@ fn main() {
 	match compiler::process(&file) {
 		Ok(binary) => {
 			display_hex(&binary, [32, 16], 3).unwrap();
-			if let Err(error) = schematic::write(&binary, &vargs[2], &schematic::WriteConfig::default()) {
-				println!("Schematic Error: {}", error);
+			if vargs.len() > 2 {
+				let filename = &vargs[2];
+				if let Err(error) = schematic::write(&binary, &filename, &schematic::WriteConfig::default()) {
+					println!("Schematic Error: {}", error);
+					return;
+				}
+				println!("Written schematic to '{}'", filename);
 			}
 		}
 		Err(err) => {

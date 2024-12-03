@@ -9,7 +9,6 @@ pub struct WriteConfig {
 	pub order: [usize; 3],
 	pub size: [i32; 3],
 	pub offset_callback: &'static dyn Fn(&[i32; 3]) -> [i32; 3],
-	pub world_offset: [i32; 3],
 }
 
 impl WriteConfig {
@@ -18,8 +17,7 @@ impl WriteConfig {
 			step: [-2, 2, 5],
 			order: [0, 2, 1],
 			size: [32, 16, 12],
-			world_offset: [0, 0, 0],
-			offset_callback: &|&[x, y, z]: &[i32; 3]| [x, y / 6 * 2, z],
+			offset_callback: &|&[_, y, _]: &[i32; 3]| [0, y / 12 * 2, 0],
 		}
 	}
 	fn get_at(&self, i: i32, bit: i32) -> [i32; 3] {
@@ -36,21 +34,29 @@ impl WriteConfig {
 	}
 }
 
-fn get_blocks() -> [Block; 2] {
-	let block_air = Block::from_id("minecraft:air").unwrap();
-	let mut block_torch = Block::from_id("minecraft:torch").unwrap();
+fn get_support_blocks() -> [Block; 2] {
+	let block_0 = Block::from_id("minecraft:black_wool").unwrap();
+	let block_1 = Block::from_id("minecraft:white_wool").unwrap();
 
-	block_torch.attributes.insert("facing".into(), "east".into());
-	block_torch.attributes.insert("lit".into(), "false".into());
+	return [block_0, block_1];
+}
 
-	return [block_air, block_torch];
+fn get_bit_blocks() -> [Block; 2] {
+	let block_0 = Block::from_id("minecraft:air").unwrap();
+	let mut block_1 = Block::from_id("minecraft:redstone_wall_torch").unwrap();
+
+	block_1.attributes.insert("facing".into(), "west".into());
+	block_1.attributes.insert("lit".into(), "false".into());
+
+	return [block_0, block_1];
 }
 
 pub fn write(binary: &[i32], filename: &str, cfg: &WriteConfig) -> Result<(), Box<dyn Error>> {
 	let mut max_pos: [i32; 3] = [0; 3];
 	let mut min_pos: [i32; 3] = [0; 3];
 	let word_count = cfg.size[0] * cfg.size[1];
-	let blocks = get_blocks();
+	let bit_blocks = get_bit_blocks();
+	let support_blocks = get_support_blocks();
 
 	for i in 0..word_count {
 		for j in 0..cfg.size[2] {
@@ -62,22 +68,24 @@ pub fn write(binary: &[i32], filename: &str, cfg: &WriteConfig) -> Result<(), Bo
 		}
 	}
 
-	let mut region = Region::with_shape(vec3_add(vec3_sub(max_pos, min_pos), [1, 1, 1]));
+	let mut region = Region::with_shape(vec3_add(vec3_sub(max_pos, min_pos), [2, 1, 1]));
+	region.fill_with(&Block::structure_void());
 
 	for i in 0..word_count {
 		let &word = binary.get(i as usize).unwrap_or(&0);
 		for j in 0..cfg.size[2] {
 			let pos = vec3_sub(cfg.get_at(i, j), min_pos);
-			region.set_block(pos, match word & j {
-				0 => &blocks[0],
-				_ => &blocks[1],
-			}).unwrap();
+			let v = match word & (1 << j) {
+				0 => 0,
+				_ => 1,
+			};
+			region.set_block(pos, &bit_blocks[v]).unwrap();
+			region.set_block(vec3_add(pos, [1, 0, 0]), &support_blocks[v]).unwrap();
 		}
 	}
-
+	
 	let mut schem = Schematic::new();
 	schem.regions.push(region);
-	schem.metadata.schem_offset = vec3_sub(min_pos, cfg.world_offset);
 	schem.save_world_edit_13_file(filename, &WorldEdit13SaveOption::default())?;
 
 	return Ok(());
