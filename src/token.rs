@@ -18,6 +18,7 @@ pub enum Token<'a> {
 	Nop(),
 
 	Local(&'a str, i32),
+	LocalSet(&'a str, i32),
 	Label(&'a str),
 }
 
@@ -39,6 +40,7 @@ impl Token<'_> {
 			Token::Call(_,_) => 5,
 			Token::Ret(_) => 2,
 			Token::Nop() => 1,
+			Token::LocalSet(_, _) => 3,
 			_ => 0,
 		}
 	}

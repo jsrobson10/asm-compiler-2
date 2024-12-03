@@ -24,10 +24,10 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 
 		let value = token.args[0];
 
-		match &token.name[..1] {
+		match &value[..1] {
 			"@" => {
-				let v = parser.proc_symbol(&value)?;
-				parser.set_symbol(&token.name[1..], v);
+				let v = parser.proc_symbol(&value[1..])?;
+				parser.set_symbol(token.name, v);
 			}
 			_ => {
 				let v = parser.proc_symbol(&value)?;

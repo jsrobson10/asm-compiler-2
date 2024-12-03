@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::swap};
 
 use crate::subroutine::Subroutine;
 
@@ -9,6 +9,7 @@ pub struct Parser<'a> {
 	inline_constants: HashMap<i32, i32>,
 	globals_at: i32,
 	binary: Vec<i32>,
+	generated: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -19,6 +20,7 @@ impl<'a> Parser<'a> {
 			inline_constants: HashMap::new(),
 			binary: vec![0xd00, 0, 0, 0],
 			globals_at: 0x200,
+			generated: false,
 		}
 	}
 	pub fn set_symbol(&mut self, name: &'a str, addr: i32) {
@@ -80,28 +82,32 @@ impl<'a> Parser<'a> {
 		if let Some(v) = self.symbols.get(symbol) {
 			return Ok(*v);
 		}
-		return Err(format!("Unknown symbol '{}'", symbol));
+		return Err(format!("Subroutine '{}' is missing", symbol));
 	}
 	pub fn add_subroutine(&mut self, subroutine: Subroutine<'a>) {
 		self.subroutines.push(subroutine);
 	}
-	pub fn generate_binary(&self, start_name: &str) -> Result<Vec<i32>, String> {
-		let mut subroutines = self.subroutines.clone();
-		let mut subroutines_lookup: HashMap<String, &mut Subroutine> = HashMap::new();
-		let mut binary = self.binary.clone();
-		let program_size = self.binary.len() as i32;
-		
-		for subroutine in subroutines.iter_mut() {
-			subroutine.program_offset = program_size;
-			if !subroutines_lookup.insert(subroutine.get_name().to_string(), subroutine).is_none() {
-				return Err(format!("Subroutine '{}' has duplicates", subroutine.get_name()));
-			}
+	pub fn add_to_binary(&mut self, data: &[i32]) {
+		self.binary.extend_from_slice(data);
+	}
+	pub fn generate_binary(&mut self, start_name: &str) -> Result<Vec<i32>, String> {
+		if self.generated {
+			return Err(format!("Cannot generate multiple times"));
 		}
 
-		binary[1] = match subroutines_lookup.get(start_name) {
-			Some(v) => v.program_offset as i32,
-			None => return Err(format!("Subroutine '{}' is missing", start_name)),
-		};
+		let mut binary: Vec<i32> = Vec::new();
+		swap(&mut binary, &mut self.binary);
+		self.generated = true;
+
+		let mut program_size = binary.len() as i32;
+		
+		for subroutine in self.subroutines.iter_mut() {
+			subroutine.program_offset = program_size;
+			self.symbols.insert(&subroutine.get_name(), program_size);
+			program_size += subroutine.size();
+		}
+
+		binary[1] = self.get_symbol(start_name)?;
 
 		for subroutine in self.subroutines.iter() {
 			subroutine.process_binary(self, &mut binary)?;

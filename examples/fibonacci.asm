@@ -9,14 +9,10 @@
 	global main
 
 main:
-	local a
-	local b
-	local c
-	local counter
-	set a, 0
-	set b, 1
-	set c, 0
-	set counter, 0
+	local_set a, 0
+	local_set b, 1
+	local_set c, 0
+	local_set counter, 0
 	label loop
 	math.add a, b, c
 	copy b, a
@@ -25,4 +21,5 @@ main:
 	store a, tmp
 	math.lthan counter, &16, tmp
 	jump_if tmp, loop
+	ret
 

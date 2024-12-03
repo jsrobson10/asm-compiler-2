@@ -4,6 +4,7 @@ use crate::{parser::Parser, subroutine::Subroutine, token::Token, tokenizer::Raw
 
 pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a>, name: &'a str) -> Result<(), String> {
 	let mut sr = Subroutine::new(name);
+	let mut last_was_ret = false;
 
 	loop {
 		let token = match it.peek() {
@@ -11,9 +12,15 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			None => break,
 		};
 
-		if token.name == ".section" {
-			return Err("Section cannot follow sr".to_string());
+		if token.name.starts_with('.') {
+			return Err("Section cannot follow subroutine".to_string());
 		}
+
+		if token.name.ends_with(':') {
+			break;
+		}
+
+		last_was_ret = false;
 
 		match (&token.name[0..], &token.subaction, token.args.len()) {
 			("stop", None, 0) => {
@@ -60,9 +67,11 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			}
 			("ret", None, 0) => {
 				sr.add_token(Token::Ret(3))?;
+				last_was_ret = true;
 			}
 			("ret", None, 1) => {
 				sr.add_token(Token::Ret(sr.proc_symbol(parser, &token.args[0])?))?;
+				last_was_ret = true;
 			}
 			("nop", None, 0) => {
 				sr.add_token(Token::Nop())?;
@@ -72,6 +81,9 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			}
 			("local", None, 2) => {
 				sr.add_token(Token::Local(token.args[0], sr.proc_symbol(parser, &token.args[1])?))?;
+			}
+			("local_set", None, 2) => {
+				sr.add_token(Token::LocalSet(token.args[0], sr.proc_symbol(parser, &token.args[1])?))?;
 			}
 			("label", None, 1) => {
 				sr.add_token(Token::Label(token.args[0]))?;
@@ -85,6 +97,10 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 		}
 
 		it.next();
+	}
+
+	if !last_was_ret {
+		return Err(format!("Missing return statement"));
 	}
 
 	parser.add_subroutine(sr);

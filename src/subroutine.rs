@@ -24,7 +24,7 @@ impl<'a> Subroutine<'a> {
 			name,
 		}
 	}
-	pub fn get_name(&self) -> &str {
+	pub fn get_name(&self) -> &'a str {
 		return &self.name;
 	}
 	pub fn get_symbol(&self, name: &str) -> Option<i32> {
@@ -41,6 +41,14 @@ impl<'a> Subroutine<'a> {
 			Token::Local(name, size) => {
 				self.symbols.insert(name, self.stack_at + 0x380);
 				self.stack_at += size;
+			}
+			Token::LocalSet(name, value) => {
+				let addr = self.stack_at + 0x380;
+				let t = Token::Set(addr, value);
+				self.total_size += t.size();
+				self.tokens.push(t);
+				self.symbols.insert(name, addr);
+				self.stack_at += 1;
 			}
 			Token::Label(name) => {
 				self.symbols.insert(name, self.total_size);
@@ -68,17 +76,17 @@ impl<'a> Subroutine<'a> {
 		return parser.get_symbol(name);
 	}
 	pub fn process_binary(&self, parser: &Parser, binary: &mut Vec<i32>) -> Result<(), String> {
-		let push_at = 0;
+		let mut push_at = 0;
 		for token in self.tokens.iter() {
 			match token {
 				Token::Stop() => {
 					binary.extend_from_slice(&[0x000]);
 				}
-				Token::Set(v, dst) => {
-					binary.extend_from_slice(&[0x100, *v, *dst]);
+				Token::Set(dst, v) => {
+					binary.extend_from_slice(&[0x100, *dst, *v]);
 				}
-				Token::SetStore(v, dst) => {
-					binary.extend_from_slice(&[0x200, *v, *dst]);
+				Token::SetStore(dst, v) => {
+					binary.extend_from_slice(&[0x200, *dst, *v]);
 				}
 				Token::Copy(src, dst) => {
 					binary.extend_from_slice(&[0x300, *src, *dst]);
@@ -105,7 +113,8 @@ impl<'a> Subroutine<'a> {
 					binary.extend_from_slice(&[0xa00, *check, self.try_get_symbol(parser, name)? + self.program_offset]);
 				}
 				Token::Push(src) => { // copy to just outside the next stack frame
-					binary.extend_from_slice(&[0x400, *src, self.stack_at + push_at + 2]);
+					binary.extend_from_slice(&[0x400, *src, 0x380 + self.stack_at + push_at + 2]);
+					push_at += 1;
 				}
 				Token::Call(name, dst) => { // create next stack frame and call to the subroutine
 					binary.extend_from_slice(&[
@@ -114,6 +123,7 @@ impl<'a> Subroutine<'a> {
 				}
 				Token::Ret(src) => {
 					binary.extend_from_slice(&[0xe00, *src]);
+					push_at = 0;
 				}
 				Token::Nop() => {
 					binary.extend_from_slice(&[0xf00]);
