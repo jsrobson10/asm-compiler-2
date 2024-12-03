@@ -1,6 +1,6 @@
 use std::fs;
 
-use output::display::display_hex;
+use output::{display::display_hex, schematic};
 
 pub mod text;
 pub mod tokenizer;
@@ -18,6 +18,9 @@ fn main() {
 	match compiler::process(&file) {
 		Ok(binary) => {
 			display_hex(&binary, [32, 16], 3).unwrap();
+			if let Err(error) = schematic::write(&binary, &vargs[2], &schematic::WriteConfig::default()) {
+				println!("Schematic Error: {}", error);
+			}
 		}
 		Err(err) => {
 			println!("{}", err);
