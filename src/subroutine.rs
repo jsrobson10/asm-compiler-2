@@ -27,14 +27,14 @@ impl<'a> Subroutine<'a> {
 	pub fn get_name(&self) -> &'a str {
 		return &self.name;
 	}
+	pub fn proc_symbol(&self, parser: &mut Parser, name: &str) -> Result<i32, String> {
+		return parser.proc_symbol(name, Some(self));
+	}
 	pub fn get_symbol(&self, name: &str) -> Option<i32> {
-		if name.starts_with('-') {
-			return Some(-self.get_symbol(&name[1..])?);
-		}
-		if let Some(v) = self.symbols.get(name) {
-			return Some(*v);
-		}
-		return None;
+		return match self.symbols.get(name) {
+			Some(v) => Some(*v),
+			None => None,
+		};
 	}
 	pub fn add_token(&mut self, token: Token<'a>) -> Result<(), String> {
 		match token {
@@ -63,19 +63,7 @@ impl<'a> Subroutine<'a> {
 	pub fn size(&self) -> i32 {
 		return self.total_size;
 	}
-	pub fn proc_symbol(&self, parser: &mut Parser, name: &str) -> Result<i32, String> {
-		if let Some(v) = self.get_symbol(name) {
-			return Ok(v);
-		}
-		return parser.proc_symbol(name);
-	}
-	fn try_get_symbol(&self, parser: &Parser, name: &str) -> Result<i32, String> {
-		if let Some(v) = self.get_symbol(name) {
-			return Ok(v);
-		}
-		return parser.get_symbol(name);
-	}
-	pub fn process_binary(&self, parser: &Parser, binary: &mut Vec<i32>) -> Result<(), String> {
+	pub fn process_binary(&self, parser: &mut Parser, binary: &mut Vec<i32>) -> Result<(), String> {
 		let mut push_at = 0;
 		for token in self.tokens.iter() {
 			match token {
@@ -104,16 +92,16 @@ impl<'a> Subroutine<'a> {
 					binary.extend_from_slice(&[0x700 | *mode, *a, *b, *dst]);
 				}
 				Token::Jump(name) => {
-					binary.extend_from_slice(&[0x800, self.try_get_symbol(parser, name)? + self.program_offset]);
+					binary.extend_from_slice(&[0x800, self.proc_symbol(parser, name)?]);
 				}
 				Token::JumpIf(check, name) => {
-					binary.extend_from_slice(&[0x900, *check, self.try_get_symbol(parser, name)? + self.program_offset]);
+					binary.extend_from_slice(&[0x900, *check, self.proc_symbol(parser, name)?]);
 				}
 				Token::JumpIfNot(check, name) => {
-					binary.extend_from_slice(&[0xa00, *check, self.try_get_symbol(parser, name)? + self.program_offset]);
+					binary.extend_from_slice(&[0xa00, *check, self.proc_symbol(parser, name)?]);
 				}
 				Token::Push(src) => { // copy to just outside the next stack frame
-					binary.extend_from_slice(&[0x400, *src, 0x380 + self.stack_at + push_at + 2]);
+					binary.extend_from_slice(&[0x300, *src, 0x380 + self.stack_at + push_at + 2]);
 					push_at += 1;
 				}
 				Token::Call(name, dst) => { // create next stack frame and call to the subroutine

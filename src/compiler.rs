@@ -3,6 +3,7 @@ mod subroutine;
 mod section_data;
 mod section_text;
 mod section_global;
+mod math;
 
 use std::collections::HashMap;
 

@@ -2,6 +2,8 @@ use std::{iter::Peekable, slice::Iter};
 
 use crate::{parser::Parser, subroutine::Subroutine, token::Token, tokenizer::RawToken};
 
+use super::math;
+
 pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a>, name: &'a str) -> Result<(), String> {
 	let mut sr = Subroutine::new(name);
 	let mut last_was_ret = false;
@@ -29,7 +31,7 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			("set", None, 2) => {
 				sr.add_token(Token::Set(sr.proc_symbol(parser, &token.args[0])?, sr.proc_symbol(parser, &token.args[1])?))?;
 			}
-			("set_store", None, 2) => {
+			("set_s", None, 2) => {
 				sr.add_token(Token::SetStore(sr.proc_symbol(parser, &token.args[0])?, sr.proc_symbol(parser, &token.args[1])?))?;
 			}
 			("copy", None, 2) => {
@@ -44,8 +46,12 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			("load", None, 2) => {
 				sr.add_token(Token::Load(sr.proc_symbol(parser, &token.args[0])?, sr.proc_symbol(parser, &token.args[1])?))?;
 			}
-			("math", Some(_subaction), 3) => { //TODO
-				sr.add_token(Token::Math(0, sr.proc_symbol(parser, &token.args[0])?, sr.proc_symbol(parser, &token.args[1])?, sr.proc_symbol(parser, &token.args[2])?))?;
+			("math", Some(subaction), 3) => {
+				let mathop = match math::parse_subaction(subaction) {
+					None => return Err(format!("'{}' is not a valid math operation", subaction)),
+					Some(v) => v,
+				};
+				sr.add_token(Token::Math(mathop, sr.proc_symbol(parser, &token.args[0])?, sr.proc_symbol(parser, &token.args[1])?, sr.proc_symbol(parser, &token.args[2])?))?;
 			}
 			("jump", None, 1) => {
 				sr.add_token(Token::Jump(token.args[0]))?;
@@ -53,7 +59,7 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 			("jump_if", None, 2) => {
 				sr.add_token(Token::JumpIf(sr.proc_symbol(parser, &token.args[0])?, token.args[1]))?;
 			}
-			("jump_if_not", None, 2) => {
+			("jump_iz", None, 2) => {
 				sr.add_token(Token::JumpIfNot(sr.proc_symbol(parser, &token.args[0])?, token.args[1]))?;
 			}
 			("push", None, 1) => {

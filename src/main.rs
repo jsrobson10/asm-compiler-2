@@ -17,6 +17,7 @@ fn main() {
 
 	match compiler::process(&file) {
 		Ok(binary) => {
+			println!("{:?}", binary);
 			display_hex(&binary, [32, 16], 3).unwrap();
 			if vargs.len() > 2 {
 				let filename = &vargs[2];

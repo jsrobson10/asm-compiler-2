@@ -20,7 +20,7 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, parser: &mut Parser<'a
 
 		let mut args: Vec<i32> = Vec::new();
 		for arg in token.args.iter() {
-			args.push(parser.proc_symbol(&arg)?);
+			args.push(parser.proc_symbol(&arg, None)?);
 		}
 
 		parser.add_constant(&token.name, &args);

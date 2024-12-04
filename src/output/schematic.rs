@@ -42,7 +42,7 @@ fn get_support_blocks() -> [Block; 2] {
 }
 
 fn get_bit_blocks() -> [Block; 2] {
-	let block_0 = Block::from_id("minecraft:air").unwrap();
+	let block_0 = Block::from_id("minecraft:glass").unwrap();
 	let mut block_1 = Block::from_id("minecraft:redstone_wall_torch").unwrap();
 
 	block_1.attributes.insert("facing".into(), "west".into());
