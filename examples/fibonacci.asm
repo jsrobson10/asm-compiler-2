@@ -25,6 +25,7 @@ main:
 	copy c, b
 	math.add display, counter, tmp
 	store a, tmp
+	math.add counter, &1, counter
 	math.lthan counter, &16, tmp
 	jump_if tmp, &loop
 	ret null
