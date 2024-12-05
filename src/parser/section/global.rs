@@ -14,15 +14,11 @@ pub fn process<'a>(it: &mut Peekable<Iter<Token<'a>>>, program: &mut Program<'a>
 			break;
 		}
 
-		if token.subaction != None {
-			return Err(CompileError::new(token.sref, format!("Unexpected '.' after '{}'", token.name)));
-		}
-
 		if token.args.len() != 1 {
 			return Err(CompileError::new(token.sref, format!("Global '{}' must have 1 argument, got {}", token.args[0], token.args.len())));
 		}
 		
-		if token.args[0].starts_with('!') {
+		if token.args[0].starts_with('^') {
 			return Err(CompileError::new(token.sref, "Reserved keyword".to_string()));
 		}
 

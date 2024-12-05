@@ -9,7 +9,7 @@ pub mod text;
 
 const WS: [char; 2] = [' ', '\t'];
 const WS_AND_NL: [char; 3] = ['\n', '\t', ' '];
-const SPECIAL: [char; 5] = ['\n', '\t', ' ', ',', '.'];
+const SPECIAL: [char; 4] = ['\n', '\t', ' ', ','];
 
 pub fn process(text: &str) -> Result<Vec<Token>, CompileError> {
 	let mut tokens: Vec<Token> = Vec::new();
@@ -39,34 +39,10 @@ pub fn process(text: &str) -> Result<Vec<Token>, CompileError> {
 		let mut token = Token {
 			sref: SourceRef::new(text, name_start, name_end - 1),
 			name: &text[name_start..name_end],
-			subaction: None,
 			args: Vec::new(),
 		};
 		
 		skip_chars(&mut it, &WS);
-
-		if it.next_if(|x| x.1 == '.').is_some() {
-			skip_chars(&mut it, &WS);
-
-			let subaction_start = match it.peek() {
-				None => return Err(CompileError::new(SourceRef::new(text, text.len(), text.len()), format!("Expected subaction, got EOF"))),
-				Some((i, _)) => *i,
-			};
-			let mut subaction_end = subaction_start;
-			
-			while let Some((i, _)) = it.next_if(|x| !SPECIAL.contains(&x.1)) {
-				subaction_end = i + 1;
-			}
-
-			token.sref.end = subaction_end - 1;
-			if subaction_start == subaction_end {
-				return Err(CompileError::new(SourceRef::new(text, subaction_start, subaction_end), format!("Subaction length is 0")));
-			}
-
-			token.subaction = Some(&text[subaction_start..subaction_end]);
-
-			skip_chars(&mut it, &WS);
-		}
 
 		loop {
 	

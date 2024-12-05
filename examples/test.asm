@@ -5,11 +5,20 @@
 .section text
 	global _start
 
+add:
+	local a
+	local b
+	local r
+	math.add a, b, r
+	ret r
+
 _start:
-	local_set i, 0
+	local i
+	set i, 0
 	label loop
-	math.add i, &1, i
-	copy i, display
+	copy i, ^.2
+	copy &1, ^.3
+	call ^, &add, display
 	jump &loop
-	ret
+	ret null
 

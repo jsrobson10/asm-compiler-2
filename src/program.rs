@@ -1,4 +1,5 @@
 mod number;
+pub mod finalize;
 
 use std::collections::HashMap;
 
@@ -26,10 +27,9 @@ impl ProcSymbolError {
 #[derive(Debug)]
 pub struct Program<'a> {
 	symbols: HashMap<&'a str, i32>,
-	subroutines: Vec<Subroutine<'a>>,
 	constants: Vec<i32>,
 	inline_constants: HashMap<i32, i32>,
-	program_at: i32,
+	program_end: i32,
 	global_at: i32,
 }
 
@@ -37,18 +37,17 @@ impl<'a> Program<'a> {
 	pub fn new() -> Program<'a> {
 		let mut program = Program {
 			symbols: HashMap::new(),
-			subroutines: Vec::new(),
 			constants: Vec::new(),
 			inline_constants: HashMap::new(),
-			program_at: 4,
+			program_end: 5,
 			global_at: 0x200,
 		};
 		program.symbols.insert("null", 0xfff);
 		return program;
 	}
-	pub fn add_subroutine(&mut self, sr: Subroutine<'a>) {
-		self.program_at += sr.get_program_size();
-		self.subroutines.push(sr);
+	pub fn add_subroutine(&mut self, sr: &Subroutine<'a>) {
+		self.add_symbol(&sr.get_name(), self.program_end);
+		self.program_end += sr.get_program_size();
 	}
 	pub fn add_symbol(&mut self, name: &'a str, addr: i32) {
 		self.symbols.insert(name, addr);
@@ -65,6 +64,9 @@ impl<'a> Program<'a> {
 		self.add_symbol(name, addr);
 		return addr;
 	}
+	pub fn get_program_end(&self) -> i32 {
+		return self.program_end;
+	}
 	fn proc_inline_constant(&mut self, value: i32) -> i32 {
 		if let Some(&addr) = self.inline_constants.get(&value) {
 			return addr;
@@ -75,7 +77,7 @@ impl<'a> Program<'a> {
 		return addr;
 	}
 	pub fn proc_symbol(&mut self, sr: Option<&Subroutine>, name: &'a str) -> Result<i32, ProcSymbolError> {
-		if let Some(i) = name.find('.') {
+		if let Some(i) = name.find('+') {
 			let value = self.proc_symbol_internal(sr, &name[..i])?;
 			let offset = number::parse(&name[i+1..])?;
 			return Ok(value + offset);
@@ -89,9 +91,6 @@ impl<'a> Program<'a> {
 		let ch = name.chars().nth(0).unwrap();
 		if ch == '-' {
 			return Ok(-self.proc_symbol_internal(sr, &name[1..])?);
-		}
-		if ch == '+' {
-			return Ok(self.proc_symbol_internal(sr, &name[1..])?);
 		}
 		if ch == '&' {
 			let addr = self.proc_symbol_internal(sr, &name[1..])?;

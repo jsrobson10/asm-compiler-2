@@ -36,10 +36,7 @@ pub fn display_hex(binary: &[i32], size: [i32; 2], digits: i32) -> Result<(), st
 		for x in 0..size[0] {
 			out.write(b" ")?;
 			let i = y * size[0] + x;
-			match binary.get(i as usize) {
-				Some(&v) => write_hex_number(&mut out, v, digits),
-				None => write_repeat(&mut out, b'.', digits),
-			}?;
+			write_hex_number(&mut out, binary[i as usize], digits)?;
 		}
 		out.write(b"\n")?;
 	}
