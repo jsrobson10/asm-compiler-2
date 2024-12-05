@@ -2,11 +2,10 @@ use std::fs;
 
 use output::{display::display_hex, schematic};
 
-pub mod text;
+pub mod error;
+pub mod program;
 pub mod tokenizer;
 pub mod parser;
-pub mod token;
-pub mod subroutine;
 
 mod compiler;
 mod output;

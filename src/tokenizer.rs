@@ -1,30 +1,18 @@
-use std::{iter::Peekable, str::CharIndices};
+use text::{skip_chars, SourceRef};
+use token::Token;
 
-use crate::text::fmt_error;
+use crate::error::CompileError;
 
-#[derive(Debug)]
-pub struct RawToken<'a> {
-	pub index: usize,
-	pub name: &'a str,
-	pub subaction: Option<&'a str>,
-	pub args: Vec<&'a str>,
-}
 
-fn skip_chars(it: &mut Peekable<CharIndices>, chars: &[char]) {
-	while let Some((_, ch)) = it.peek() {
-		if !chars.contains(ch) {
-			break;
-		}
-		it.next();
-	}
-}
+pub mod token;
+pub mod text;
 
 const WS: [char; 2] = [' ', '\t'];
 const WS_AND_NL: [char; 3] = ['\n', '\t', ' '];
 const SPECIAL: [char; 5] = ['\n', '\t', ' ', ',', '.'];
 
-pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
-	let mut tokens: Vec<RawToken> = Vec::new();
+pub fn process(text: &str) -> Result<Vec<Token>, CompileError> {
+	let mut tokens: Vec<Token> = Vec::new();
 	let mut it = text.char_indices().peekable();
 
 	loop {
@@ -45,11 +33,11 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 		}
 
 		if name_start == name_end {
-			return Err(fmt_error(text, name_start, format!("Name length is 0")));
+			return Err(CompileError::new(SourceRef::new(text, name_start, name_end), format!("Name length is 0")));
 		}
 
-		let mut token = RawToken {
-			index: name_start,
+		let mut token = Token {
+			sref: SourceRef::new(text, name_start, name_end - 1),
 			name: &text[name_start..name_end],
 			subaction: None,
 			args: Vec::new(),
@@ -61,7 +49,7 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 			skip_chars(&mut it, &WS);
 
 			let subaction_start = match it.peek() {
-				None => return Err(fmt_error(text, text.len(), format!("Expected subaction, got EOF"))),
+				None => return Err(CompileError::new(SourceRef::new(text, text.len(), text.len()), format!("Expected subaction, got EOF"))),
 				Some((i, _)) => *i,
 			};
 			let mut subaction_end = subaction_start;
@@ -70,8 +58,9 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 				subaction_end = i + 1;
 			}
 
+			token.sref.end = subaction_end - 1;
 			if subaction_start == subaction_end {
-				return Err(fmt_error(text, subaction_start, format!("Subaction length is 0")));
+				return Err(CompileError::new(SourceRef::new(text, subaction_start, subaction_end), format!("Subaction length is 0")));
 			}
 
 			token.subaction = Some(&text[subaction_start..subaction_end]);
@@ -83,8 +72,8 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 	
 			let arg_start = match it.peek() {
 				Some((_, '\n')) | None => break,
-				Some((i, ',')) => return Err(fmt_error(text, *i, format!("Unexpected ','"))),
-				Some((i, '.')) => return Err(fmt_error(text, *i, format!("Unexpected '.'"))),
+				Some((i, ',')) => return Err(CompileError::new(SourceRef::new(text, *i, *i), format!("Unexpected ','"))),
+				Some((i, '.')) => return Err(CompileError::new(SourceRef::new(text, *i, *i), format!("Unexpected '.'"))),
 				Some((i, _)) => *i,
 			};
 			let mut arg_end = arg_start;
@@ -93,6 +82,7 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 				arg_end = i + 1;
 			}
 			
+			token.sref.end = arg_end - 1;
 			skip_chars(&mut it, &WS);
 
 			if arg_start < arg_end {
@@ -104,7 +94,7 @@ pub fn process(text: &str) -> Result<Vec<RawToken>, String> {
 				Some((_, ',')) => {
 					it.next();
 				}
-				Some((i, ch)) => return Err(fmt_error(text, *i, format!("Expected ',' or newline, got '{}'", ch))),
+				Some((i, ch)) => return Err(CompileError::new(SourceRef::new(text, *i, *i), format!("Expected ',' or newline, got '{}'", ch))),
 			}
 			
 			skip_chars(&mut it, &WS);

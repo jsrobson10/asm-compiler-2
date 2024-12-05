@@ -1,10 +1,11 @@
 
 use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
-use crate::tokenizer::RawToken;
+use crate::{error::CompileError, tokenizer::token::Token};
 
-pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, metadata: &mut HashMap<&'a str, &'a str>) -> Result<(), String> {
+pub fn process<'a>(it: &mut Peekable<Iter<Token<'a>>>, metadata: &mut HashMap<&'a str, &'a str>) -> Result<(), CompileError<'a>> {
 	loop {
+
 		let token = match it.peek() {
 			Some(v) => v,
 			None => break,
@@ -19,10 +20,10 @@ pub fn process<'a>(it: &mut Peekable<Iter<RawToken<'a>>>, metadata: &mut HashMap
 				metadata.insert(name, token.args[0]);
 			}
 			(name, Some(_), _) => {
-				return Err(format!("Unexpected '.' after '{}'", name));
+				return Err(CompileError::new(token.sref, format!("Unexpected '.' after '{}'", name)));
 			}
 			(name, None, _) => {
-				return Err(format!("Unexpected ',' after '{} {}'", name, token.args[0]));
+				return Err(CompileError::new(token.sref, format!("Unexpected ',' after '{} {}'", name, token.args[0])));
 			}
 		}
 		
