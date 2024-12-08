@@ -33,7 +33,7 @@ pub fn process(text: &str) -> Result<Vec<Token>, CompileError> {
 		}
 
 		if name_start == name_end {
-			return Err(CompileError::new(SourceRef::new(text, name_start, name_end), format!("Name length is 0")));
+			continue;
 		}
 
 		let mut token = Token {

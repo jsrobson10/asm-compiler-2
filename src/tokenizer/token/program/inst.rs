@@ -12,6 +12,7 @@ pub fn parse_instruction(name: &str) -> Option<(i32, usize)> {
 		"jump" => (0x8, 1),
 		"jump_if" => (0x9, 2),
 		"jump_z" => (0xa, 2),
+		"jump_b" => (0xb, 3),
 		"call" => (0xd, 3),
 		"ret" => (0xe, 1),
 		"nop" => (0xf, 0),

@@ -14,10 +14,9 @@ main:
 	local c
 	local counter
 
-	set a, 0
-	set b, 1
-	set c, 0
-	set counter, 0
+	set 0, a
+	set 1, b
+	set 0, counter
 
 	label loop
 	math.add a, b, c

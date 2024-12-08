@@ -52,9 +52,13 @@ impl<'a> Program<'a> {
 	pub fn add_symbol(&mut self, name: &'a str, addr: i32) {
 		self.symbols.insert(name, addr);
 	}
-	pub fn add_global(&mut self, name: &'a str, size: i32) -> i32 {
+	pub fn add_hidden_global(&mut self, size: i32) -> i32 {
 		let addr = self.global_at;
 		self.global_at += size;
+		return addr;
+	}
+	pub fn add_global(&mut self, name: &'a str, size: i32) -> i32 {
+		let addr = self.add_hidden_global(size);
 		self.add_symbol(name, addr);
 		return addr;
 	}

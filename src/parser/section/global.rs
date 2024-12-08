@@ -15,7 +15,7 @@ pub fn process<'a>(it: &mut Peekable<Iter<Token<'a>>>, program: &mut Program<'a>
 		}
 
 		if token.args.len() != 1 {
-			return Err(CompileError::new(token.sref, format!("Global '{}' must have 1 argument, got {}", token.args[0], token.args.len())));
+			return Err(CompileError::new(token.sref, format!("Global '{}' must have 1 argument, got {}", token.name, token.args.len())));
 		}
 		
 		if token.args[0].starts_with('^') {

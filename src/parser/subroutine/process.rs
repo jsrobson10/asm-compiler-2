@@ -48,6 +48,22 @@ pub fn process<'a>(sref_start: SourceRef<'a>, it: &mut Peekable<Iter<Token<'a>>>
 					});
 				}
 			}
+			("static", 1) => {
+				if token.args[0].starts_with('^') {
+					return Err(CompileError::new(token.sref, "Reserved keyword".to_string()));
+				}
+				sr.add_symbol(token.args[0], program.add_hidden_global(1));
+			}
+			("static", 2) => {
+				if token.args[0].starts_with('^') {
+					return Err(CompileError::new(token.sref, "Reserved keyword".to_string()));
+				}
+				let size = match program.proc_symbol(Some(&sr), &token.args[1]) {
+					Ok(v) => v,
+					Err(err) => return Err(err.to_error(token.sref)),
+				};
+				sr.add_symbol(token.args[0], program.add_hidden_global(size));
+			}
 			("label", 1) => {
 				if token.args[0].starts_with('^') {
 					return Err(CompileError::new(token.sref, "Reserved keyword".to_string()));

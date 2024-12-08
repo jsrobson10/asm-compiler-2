@@ -24,9 +24,21 @@ impl<'a> SourceRef<'a> {
 	}
 }
 
+pub fn skip_until_chars(it: &mut Peekable<CharIndices>, chars: &[char]) {
+	while let Some(&(_, ch)) = it.peek() {
+		if chars.contains(&ch) {
+			break;
+		}
+		it.next();
+	}
+}
+
 pub fn skip_chars(it: &mut Peekable<CharIndices>, chars: &[char]) {
-	while let Some((_, ch)) = it.peek() {
-		if !chars.contains(ch) {
+	while let Some(&(_, ch)) = it.peek() {
+		if ch == ';' {
+			skip_until_chars(it, &['\n']);
+		}
+		if !chars.contains(&ch) {
 			break;
 		}
 		it.next();
