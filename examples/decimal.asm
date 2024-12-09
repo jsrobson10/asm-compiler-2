@@ -25,7 +25,7 @@ display_number:
 
 	local at
 	set 8, at
-	set 0, 0x430 ; clear screen
+	set 0, 0x431 ; clear screen
 
 	label loop
 	math.sub at, &1, at
@@ -36,6 +36,7 @@ display_number:
 	jump_z at, &end
 	jump_if v, &loop
 	label end
+	set 0, 0x432 ; sync screen
 	ret null
 
 main:
