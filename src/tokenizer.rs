@@ -73,7 +73,7 @@ pub fn process(text: &str) -> Result<Vec<Token>, CompileError> {
 				Some((i, ch)) => return Err(CompileError::new(SourceRef::new(text, *i, *i), format!("Expected ',' or newline, got '{}'", ch))),
 			}
 			
-			skip_chars(&mut it, &WS);
+			skip_chars(&mut it, &WS_AND_NL);
 		}
 
 		tokens.push(token);

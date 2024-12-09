@@ -1,10 +1,10 @@
 
 .section data
 	display 0x400
-	primes_max 16
+	primes_max 32
 
 .section global
-	primes 16
+	primes 32
 	primes_count 1
 
 	prime_at 1
@@ -47,6 +47,10 @@ add_prime:
 
 	math.add primes_count, &primes, tmp
 	store prime, tmp
+	math.and primes_count, &15, tmp
+	jump_if tmp, &next
+	set 0, 0x430
+	label next
 	math.add tmp, display, tmp
 	store prime, tmp
 	math.add primes_count, &1, primes_count
